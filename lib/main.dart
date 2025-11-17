@@ -1,102 +1,48 @@
+import 'package:finance_guardian/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'home_screen.dart';
-import 'dashboard_screen.dart';
-import 'insights_screen.dart';
-import 'transactions_screen.dart';
-import 'profile_screen.dart';
-import 'auth/login_screen.dart';
 import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// debug screen
+import 'screens/sms_debug_screen.dart';
+import 'screens/transactions_screen.dart';
+import 'screens/insights_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🚀 Correct Firebase initialization
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(FinanceGuardianApp());
+  // Anonymous login
+  await FirebaseAuth.instance.signInAnonymously();
+
+  runApp(const MyApp());
 }
 
-class FinanceGuardianApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Finance Guardian',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorSchemeSeed: Colors.indigo,
         useMaterial3: true,
       ),
-      home: AuthWrapper(),
+
+      // 👇 HERE ARE THE ROUTES
       routes: {
-        '/home': (context) => MainScreen(),
-        '/login': (context) => LoginScreen(),
+        "/smsdebug": (_) => SmsDebugScreen(),
+        "/transactions": (_) => TransactionsScreen(),
+        // insights screen later
       },
-    );
-  }
-}
-
-class AuthWrapper extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.hasData) {
-          return MainScreen();
-        }
-        return LoginScreen();
-      },
-    );
-  }
-}
-
-class MainScreen extends StatefulWidget {
-  @override
-  _MainScreenState createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _screens = [
-    HomeScreen(),
-    DashboardScreen(),
-    InsightsScreen(),
-    TransactionsScreen(),
-    ProfileScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Dashboard"),
-          BottomNavigationBarItem(icon: Icon(Icons.insights), label: "Insights"),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: "Transactions"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
+      home: HomeScreen(),
     );
   }
 }

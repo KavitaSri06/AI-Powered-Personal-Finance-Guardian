@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.kavita.financeguardian.finance_guardian"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.kavita.financeguardian.finance_guardian"
-        minSdk = 23           // REQUIRED FOR FIREBASE
-        targetSdk = 34
+        minSdk = 23
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }
@@ -34,7 +34,7 @@ android {
         jvmTarget = "11"
     }
 
-    ndkVersion = "27.0.12077973" // REQUIRED FOR FIREBASE PLUGINS
+    ndkVersion = "27.0.12077973"
 }
 
 flutter {

@@ -1,7 +1,3 @@
-// ---------------------------------------------
-// Firebase + Flutter compatible build.gradle.kts
-// ---------------------------------------------
-
 buildscript {
     repositories {
         google()
@@ -9,7 +5,7 @@ buildscript {
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.1.2")
-        classpath("com.google.gms:google-services:4.4.2") // Required for Firebase
+        classpath("com.google.gms:google-services:4.4.2")
     }
 }
 
