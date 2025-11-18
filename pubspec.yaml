@@ -43,10 +43,11 @@ dependencies:
 
 
   # Charts
-  fl_chart: ^0.55.2
+  fl_chart: 0.63.0
+
 
   # For date formatting
-  intl: ^0.18.0
+  intl: ^0.18.1
 
   # For HTTP (AI API later)
   http: ^1.1.0

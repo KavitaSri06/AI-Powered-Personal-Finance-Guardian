@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/sms_service.dart';
 import '../services/firestore_service.dart';
+import '../models/transaction_model.dart';
 
 class SmsDebugScreen extends StatefulWidget {
   @override
@@ -8,7 +9,7 @@ class SmsDebugScreen extends StatefulWidget {
 }
 
 class _SmsDebugScreenState extends State<SmsDebugScreen> {
-  List<Map<String, dynamic>> parsed = [];
+  List<TransactionModel> parsed = [];
   bool isLoading = false;
 
   Future<void> scanSms() async {
@@ -17,9 +18,10 @@ class _SmsDebugScreenState extends State<SmsDebugScreen> {
     SmsService smsService = SmsService();
     FirestoreService firestore = FirestoreService();
 
+    // Extract transactions
     final data = await smsService.extractTransactions();
 
-    // 🔥 Save to Firestore
+    // save each txn to Firestore
     for (final txn in data) {
       await firestore.saveTransaction(txn);
     }
@@ -37,18 +39,15 @@ class _SmsDebugScreenState extends State<SmsDebugScreen> {
       body: Column(
         children: [
           SizedBox(height: 20),
-
           ElevatedButton(
             onPressed: scanSms,
             child: Text("SCAN SMS"),
           ),
-
           if (isLoading)
             Padding(
               padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
-
           Expanded(
             child: ListView.builder(
               itemCount: parsed.length,
@@ -56,9 +55,12 @@ class _SmsDebugScreenState extends State<SmsDebugScreen> {
                 final txn = parsed[index];
 
                 return ListTile(
-                  title: Text("₹${txn['amount']}  |  ${txn['type']}"),
-                  subtitle: Text("${txn['merchant']}"),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  title: Text("₹${txn.amount}  |  ${txn.type}"),
+                  subtitle: Text("${txn.merchant}"),
+                  trailing: Text(
+                    "${txn.timestamp.day}/${txn.timestamp.month}",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 );
               },
             ),

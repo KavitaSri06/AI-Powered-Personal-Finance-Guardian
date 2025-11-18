@@ -1,107 +1,73 @@
 import 'package:flutter/material.dart';
+import '../services/firestore_service.dart';
+import '../widgets/cards/summary_card.dart';
+import '../widgets/tiles/transaction_tile.dart';
+import '../models/transaction_model.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final firestore = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Finance Guardian"),
-        centerTitle: true,
+        title: Text("Finance Guardian"),
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: FutureBuilder<List<TransactionModel>>(
+        future: firestore.getRecentTransactions(limit: 10),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
 
-            // Greeting Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
-                borderRadius: BorderRadius.circular(16),
+          final txns = snapshot.data!;
+
+          // -----------------------------
+          //  CALCULATE TOTALS
+          // -----------------------------
+          double totalSpent = 0;
+          double totalCredited = 0;
+
+          for (var t in txns) {
+            if (t.type == "debit") {
+              totalSpent += t.amount;
+            } else {
+              totalCredited += t.amount;
+            }
+          }
+
+          return ListView(
+            padding: EdgeInsets.all(16),
+            children: [
+              // -----------------------------
+              //  SUMMARY CARD
+              // -----------------------------
+              SummaryCard(
+                totalSpent: totalSpent,
+                totalCredited: totalCredited,
+                totalTransactions: txns.length,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "👋 Welcome back!",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Track your spending and stay safe financially.",
-                    style: TextStyle(fontSize: 15),
-                  ),
-                ],
+
+              SizedBox(height: 20),
+
+              Text(
+                "Recent Transactions",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
+              SizedBox(height: 10),
 
-            const SizedBox(height: 25),
-
-            // Quick Buttons
-            Text(
-              "Quick Actions",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _actionButton(
-                  context,
-                  icon: Icons.sms,
-                  label: "Scan SMS",
-                  onTap: () => Navigator.pushNamed(context, "/smsdebug"),
-                ),
-                _actionButton(
-                  context,
-                  icon: Icons.list_alt,
-                  label: "Transactions",
-                  onTap: () => Navigator.pushNamed(context, "/transactions"),
-                ),
-                _actionButton(
-                  context,
-                  icon: Icons.insights,
-                  label: "Insights",
-                  onTap: () => Navigator.pushNamed(context, "/insights"),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _actionButton(BuildContext context,
-      {required IconData icon, required String label, required Function onTap}) {
-    return GestureDetector(
-      onTap: () => onTap(),
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.indigo.shade100,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: Colors.indigo.shade900),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            )
-          ],
-        ),
+              ...txns.map(
+                    (t) => TransactionTile(transaction: t),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

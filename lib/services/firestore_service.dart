@@ -1,23 +1,44 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../models/transaction_model.dart';
 
 class FirestoreService {
-  final _db = FirebaseFirestore.instance;
+  final FirebaseFirestore db = FirebaseFirestore.instance;
 
-  Future<void> saveTransaction(Map<String, dynamic> txn) async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      print("❌ ERROR: No user found");
-      return;
-    }
-
-    await _db
-        .collection("users")
-        .doc(user.uid)
-        .collection("transactions")
-        .add(txn);
-
-    print("🔥 Transaction saved to Firestore");
+  Future<void> saveTransaction(TransactionModel txn) async {
+    await db.collection("transactions").add(txn.toMap());
   }
+
+  Future<List<TransactionModel>> getAllTransactions() async {
+    try {
+      final snap = await db
+          .collection("transactions")
+          .orderBy("timestamp", descending: true)
+          .get();
+
+      return snap.docs
+          .map((doc) => TransactionModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      print("🔥 Firestore getAllTransactions error: $e");
+      return [];
+    }
+  }
+
+  Future<List<TransactionModel>> getRecentTransactions({int limit = 10}) async {
+    try {
+      final snap = await db
+          .collection("transactions")
+          .orderBy("timestamp", descending: true)
+          .limit(limit)
+          .get();
+
+      return snap.docs
+          .map((doc) => TransactionModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      print("🔥 Firestore getRecentTransactions error: $e");
+      return [];
+    }
+  }
+
 }
