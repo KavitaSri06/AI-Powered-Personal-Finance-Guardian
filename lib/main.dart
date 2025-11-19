@@ -4,12 +4,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'app/app_navigation.dart';   // ✅ IMPORTANT
+import 'app/app_navigation.dart';
 import 'screens/sms_debug_screen.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/insights_screen.dart';
 import 'screens/transaction_details_screen.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,9 +30,42 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Finance Guardian',
+
+      // ❗️ DO NOT MAKE THIS const
       theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
         useMaterial3: true,
+
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.light,
+        ),
+
+        fontFamily: "Inter",
+
+        // ⭐ Correct CardThemeData — no const needed
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontSize: 15),
+          titleMedium: TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
 
       routes: {
@@ -41,11 +73,10 @@ class MyApp extends StatelessWidget {
         "/transactions": (_) => TransactionsScreen(),
         "/transactionDetails": (_) => TransactionDetailsScreen(),
         "/insights": (_) => InsightsScreen(),
-
-
+        "/budgets": (_) => BudgetSettingsScreen(),
       },
 
-      home: AppNavigation(), // 👈 now this works
+      home:  AppNavigation(),
     );
   }
 }

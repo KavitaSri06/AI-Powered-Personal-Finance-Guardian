@@ -5,9 +5,9 @@ class InsightsResult {
   final double projectedMonthlySpend;
 
   final Map<String, double> categoryTotals;
+  final List<double> weeklyTotals;
 
-  final List<double> weeklyTotals;     // 7 days
-  final List<double> monthlyTotals;    // 30 days for bar chart
+  final List<double> monthlyTotals;   // ✅ NEW
 
   final List<String> messages;
 
@@ -18,7 +18,7 @@ class InsightsResult {
     required this.projectedMonthlySpend,
     required this.categoryTotals,
     required this.weeklyTotals,
-    required this.monthlyTotals,
+    required this.monthlyTotals,      // ✅ NEW
     required this.messages,
   });
 }
