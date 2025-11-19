@@ -59,4 +59,18 @@ class FirestoreService {
     return doc.data();
   }
 
+  Future<Map<String, dynamic>> getBudgets() async {
+    final doc = await db.collection("users").doc("default_user").get();
+    return doc.data()?["budgets"] ?? {
+      "monthlyLimit": 0,
+      "food": 0,
+      "shopping": 0,
+      "fuel": 0,
+      "travel": 0,
+      "bills": 0,
+      "subscriptions": 0,
+      "others": 0,
+    };
+  }
+
 }

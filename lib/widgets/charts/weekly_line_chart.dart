@@ -9,34 +9,51 @@ class WeeklyLineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) {
-      return const Text("No weekly data");
+      return const Center(child: Text("No weekly data"));
     }
 
     return SizedBox(
-      height: 220,
+      height: 240,
       child: LineChart(
         LineChartData(
+          minY: 0,
+          gridData: FlGridData(show: true, drawVerticalLine: false),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true),
+              sideTitles: SideTitles(showTitles: true, reservedSize: 36),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 interval: 1,
                 getTitlesWidget: (value, meta) {
-                  int i = value.toInt();
-                  if (i < 0 || i >= values.length) return const SizedBox();
-                  return Text(["D-6","D-5","D-4","D-3","D-2","Yesterday","Today"][i],
-                      style: const TextStyle(fontSize: 10));
+                  final labels = ["D-6", "D-5", "D-4", "D-3", "D-2", "Yesterday", "Today"];
+                  int idx = value.toInt();
+                  if (idx < 0 || idx >= labels.length) return const SizedBox();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      labels[idx],
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                    ),
+                  );
                 },
               ),
             ),
           ),
+
+          borderData: FlBorderData(show: false),
+
           lineBarsData: [
             LineChartBarData(
+              color: Colors.teal,
               isCurved: true,
               barWidth: 3,
+              dotData: FlDotData(show: true),
+              belowBarData: BarAreaData(
+                show: true,
+                color: Colors.teal.withOpacity(0.2),
+              ),
               spots: [
                 for (int i = 0; i < values.length; i++)
                   FlSpot(i.toDouble(), values[i]),
