@@ -2,34 +2,32 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 class CategoryPieChart extends StatelessWidget {
-  final Map<String, double> data;
+  final Map<String, double> values;
 
-  const CategoryPieChart({super.key, required this.data});
+  const CategoryPieChart({super.key, required this.values});
 
   @override
   Widget build(BuildContext context) {
-    if (data.isEmpty) {
-      return Center(child: Text("No data available"));
+    if (values.isEmpty) {
+      return const Text("No data available");
     }
 
-    final sections = <PieChartSectionData>[];
-
-    data.forEach((category, amount) {
-      sections.add(
-        PieChartSectionData(
-          value: amount,
-          title: category,
-          radius: 60,
-          titleStyle: TextStyle(fontSize: 12, color: Colors.white),
-        ),
+    final sections = values.entries.map((e) {
+      return PieChartSectionData(
+        value: e.value,
+        title: e.key,
+        radius: 60,
+        titleStyle: const TextStyle(fontSize: 12, color: Colors.white),
       );
-    });
+    }).toList();
 
-    return PieChart(
-      PieChartData(
-        sections: sections,
-        centerSpaceRadius: 40,
-        sectionsSpace: 2,
+    return SizedBox(
+      height: 220,
+      child: PieChart(
+        PieChartData(
+          sections: sections,
+          centerSpaceRadius: 40,
+        ),
       ),
     );
   }

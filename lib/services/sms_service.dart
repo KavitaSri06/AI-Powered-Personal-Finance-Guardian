@@ -1,77 +1,75 @@
+// lib/services/sms_service.dart
 import 'package:flutter/services.dart';
-import 'package:finance_guardian/services/category_detector.dart';
 import '../models/transaction_model.dart';
+import 'category_detector.dart';
 
 class SmsService {
-  static const platform = MethodChannel('sms_reader');
+  static const MethodChannel _channel = MethodChannel('sms_reader');
 
+  /// Returns parsed TransactionModel list
   Future<List<TransactionModel>> extractTransactions() async {
     try {
-      final List<dynamic> smsList =
-          await platform.invokeMethod("getSms") ?? [];
+      final List<dynamic>? raw =
+      await _channel.invokeMethod<List<dynamic>>('getSms');
+
+      final smsList = raw ?? [];
 
       print("📥 SMS Count: ${smsList.length}");
 
-      List<TransactionModel> parsed = [];
+      final List<TransactionModel> parsed = [];
 
-      for (var sms in smsList) {
-        final String body = sms["body"]?.toString() ?? "";
-        final int timestampMillis = sms["date"] ?? 0;
+      for (var s in smsList) {
+        if (s is! Map) continue;
+        final map = Map<String, dynamic>.from(s);
 
-        if (body.isEmpty) continue;
+        final body = (map['body'] ?? map['message'] ?? '').toString();
+        final dateRaw = map['date'] ?? map['timestamp'] ?? map['time'] ?? 0;
 
-        // ---------------------------------------------------
-        // 1️⃣ Extract Amount
-        // ---------------------------------------------------
-        final amountRegex = RegExp(r'Rs\.?\s?([\d,]+\.?\d*)');
-        final amountMatch = amountRegex.firstMatch(body);
+        if (body.trim().isEmpty) continue;
 
-        if (amountMatch == null) continue;
+        // amount regex, tolerant with commas and symbols
+        final amountRegex = RegExp(r'(?:rs\.?|inr|₹)\s*\.?([\d,]+\.?\d*)', caseSensitive: false);
+        final match = amountRegex.firstMatch(body);
+        if (match == null) {
+          // fallback: look for numbers like 1250.00 or 1,250.00
+          final fallback = RegExp(r'([\d,]+\.\d{2})').firstMatch(body);
+          if (fallback == null) continue;
+        }
 
-        final amountStr = amountMatch.group(1)!.replaceAll(",", "");
-        final double amount = double.tryParse(amountStr) ?? 0;
+        String amountStr = '';
+        final m = amountRegex.firstMatch(body);
+        if (m != null) amountStr = m.group(1) ?? '';
+        else {
+          final f = RegExp(r'([\d,]+\.\d{2})').firstMatch(body);
+          amountStr = f?.group(1) ?? '';
+        }
+        amountStr = amountStr.replaceAll(',', '');
+        final amount = double.tryParse(amountStr) ?? 0.0;
 
-        // ---------------------------------------------------
-        // 2️⃣ Extract Merchant
-        // ---------------------------------------------------
-        final merchantRegex = RegExp(r'at\s+([A-Za-z0-9 &.\-]+)');
-        final merchantMatch = merchantRegex.firstMatch(body);
+        // merchant heuristics
+        final merchantRegex = RegExp(r'at\s+([A-Za-z0-9 &.\-]{2,40})', caseSensitive: false);
+        final mm = merchantRegex.firstMatch(body);
+        final merchant = mm != null ? mm.group(1)!.trim() : (map['address'] ?? 'Unknown').toString();
 
-        final String merchant = merchantMatch != null
-            ? merchantMatch.group(1)!.trim()
-            : "Unknown";
+        // type
+        final type = body.toLowerCase().contains('credited') ? 'credit' : 'debit';
 
-        // ---------------------------------------------------
-        // 3️⃣ Transaction Type
-        // ---------------------------------------------------
-        final lower = body.toLowerCase();
+        // timestamp
+        DateTime ts = DateTime.now();
+        if (dateRaw is int) {
+          ts = DateTime.fromMillisecondsSinceEpoch(dateRaw);
+        } else if (dateRaw is String) {
+          ts = DateTime.tryParse(dateRaw) ?? DateTime.fromMillisecondsSinceEpoch(int.tryParse(dateRaw) ?? 0);
+        }
 
-        final String type = lower.contains("debited")
-            ? "debit"
-            : lower.contains("credited")
-            ? "credit"
-            : "unknown";
+        // category detection
+        final category = CategoryDetector.detect(merchant, body);
 
-        // ---------------------------------------------------
-        // 4️⃣ Convert timestamp
-        // ---------------------------------------------------
-        final DateTime timestamp =
-        DateTime.fromMillisecondsSinceEpoch(timestampMillis);
-
-        // ---------------------------------------------------
-        // 5️⃣ CATEGORY DETECTION ENGINE
-        // ---------------------------------------------------
-        final String category =
-        CategoryDetector.detect(merchant, body);
-
-        // ---------------------------------------------------
-        // 6️⃣ Build TransactionModel
-        // ---------------------------------------------------
         final txn = TransactionModel(
           amount: amount,
           type: type,
           merchant: merchant,
-          timestamp: timestamp,
+          timestamp: ts,
           body: body,
           category: category,
         );
@@ -81,7 +79,10 @@ class SmsService {
 
       print("✅ Extracted ${parsed.length} transactions");
       return parsed;
-
+    } on MissingPluginException catch (e) {
+      print("❌ SMS parsing error: $e");
+      // fallback: return empty list
+      return [];
     } catch (e) {
       print("❌ SMS parsing error: $e");
       return [];

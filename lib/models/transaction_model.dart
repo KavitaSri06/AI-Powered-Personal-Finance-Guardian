@@ -1,10 +1,14 @@
+// lib/models/transaction_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class TransactionModel {
   final double amount;
-  final String type;
+  final String type; // 'debit' or 'credit'
   final String merchant;
   final DateTime timestamp;
   final String body;
   final String category;
+  final String id; // firestore doc id (optional)
 
   TransactionModel({
     required this.amount,
@@ -13,30 +17,46 @@ class TransactionModel {
     required this.timestamp,
     required this.body,
     required this.category,
+    this.id = '',
   });
 
-  factory TransactionModel.fromMap(Map<String, dynamic> map) {
-    // parse timestamp safely
-    DateTime time;
-
-    final ts = map['timestamp'];
-
-    if (ts is int) {
-      // millis
-      time = DateTime.fromMillisecondsSinceEpoch(ts);
-    } else if (ts is String) {
-      time = DateTime.tryParse(ts) ?? DateTime.now();
-    } else {
-      time = DateTime.now();
+  factory TransactionModel.fromMap(Map<String, dynamic> m, {String? id}) {
+    // amount may be number or string
+    double parsedAmount = 0;
+    final a = m['amount'];
+    if (a is num) parsedAmount = a.toDouble();
+    else if (a is String) {
+      // remove commas and currency symbols
+      final cleaned = a.replaceAll(RegExp(r'[^0-9.]'), '');
+      parsedAmount = double.tryParse(cleaned) ?? 0;
     }
 
+    // timestamp: can be firestore Timestamp, int millis, or ISO string
+    DateTime parsedTs = DateTime.now();
+    final ts = m['timestamp'];
+    if (ts is Timestamp) {
+      parsedTs = ts.toDate();
+    } else if (ts is int) {
+      parsedTs = DateTime.fromMillisecondsSinceEpoch(ts);
+    } else if (ts is String) {
+      // try ISO or millis string
+      parsedTs = DateTime.tryParse(ts) ??
+          DateTime.fromMillisecondsSinceEpoch(int.tryParse(ts) ?? 0);
+    }
+
+    final t = (m['type'] ?? 'debit').toString();
+    final merchant = (m['merchant'] ?? 'Unknown').toString();
+    final body = (m['body'] ?? '').toString();
+    final category = (m['category'] ?? 'uncategorized').toString();
+
     return TransactionModel(
-      amount: (map['amount'] ?? 0).toDouble(),
-      type: map['type'] ?? 'debit',
-      merchant: map['merchant'] ?? 'Unknown',
-      timestamp: time,
-      body: map['body'] ?? '',
-      category: map['category'] ?? 'Others',
+      amount: parsedAmount,
+      type: t,
+      merchant: merchant,
+      timestamp: parsedTs,
+      body: body,
+      category: category,
+      id: id ?? '',
     );
   }
 

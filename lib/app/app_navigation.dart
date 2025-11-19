@@ -1,8 +1,10 @@
+import 'package:finance_guardian/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../screens/transactions_screen.dart';
 import '../screens/sms_debug_screen.dart';
 import '../screens/insights_screen.dart';
+import '../screens/budget_settings_screen.dart';
 
 class AppNavigation extends StatefulWidget {
   @override
@@ -16,7 +18,7 @@ class _AppNavigationState extends State<AppNavigation> {
     HomeScreen(),
     TransactionsScreen(),
     InsightsScreen(),
-    SmsDebugScreen(),
+    ProfileScreen()
   ];
 
   @override
@@ -48,10 +50,12 @@ class _AppNavigationState extends State<AppNavigation> {
             label: "Insights",
           ),
 
+
           NavigationDestination(
-            icon: Icon(Icons.settings),
-            label: "Debug",
+            icon: Icon(Icons.person_outline),
+            label: "Profile",
           ),
+
         ],
       ),
     );

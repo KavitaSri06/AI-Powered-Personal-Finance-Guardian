@@ -1,132 +1,57 @@
+// lib/services/category_detector.dart
 class CategoryDetector {
+  // keywords for categories
+  static final Map<String, List<String>> _keywords = {
+    'food': [
+      'zomato', 'swiggy', 'dominos', 'mcdonald', 'restaurant', 'canteen', 'food'
+    ],
+    'shopping': ['amazon', 'flipkart', 'myntra', 'ajio', 'shopping', 'purchase'],
+    'fuel': ['petrol', 'fuel', 'hpcl', 'bharat', 'indianoil', 'petrolpump'],
+    'travel': ['uber', 'ola', 'paytm.*cab', 'irctc', 'flight', 'bus', 'train'],
+    'bills': ['electricity', 'water', 'bill', 'broadband', 'billing', 'gas'],
+    'subscriptions': ['netflix', 'prime', 'spotify', 'hotstar', 'subscription', 'subscription'],
+  };
+
+  // merchant -> category overrides (exact-ish)
+  static final Map<String, String> _merchantMap = {
+    'zomato': 'food',
+    'swiggy': 'food',
+    'dominos': 'food',
+    'amazon': 'shopping',
+    'flipkart': 'shopping',
+    'uber': 'travel',
+    'ola': 'travel',
+    'irctc': 'travel',
+    'netflix': 'subscriptions',
+    'prime': 'subscriptions',
+    'spotify': 'subscriptions',
+  };
+
   static String detect(String merchant, String body) {
-    final text = (merchant + " " + body).toLowerCase();
+    final mLower = merchant.toLowerCase();
+    final bLower = body.toLowerCase();
 
-    // ---------------------------------------
-    // 1️⃣ FOOD & DINING
-    // ---------------------------------------
-    const foodKeywords = [
-      "zomato",
-      "swiggy",
-      "pizza",
-      "kfc",
-      "burger",
-      "mcdonald",
-      "eatery",
-      "restaurant",
-      "hotel",
-      "café",
-      "coffee",
-      "food",
-      "mess"
-    ];
-
-    if (_match(text, foodKeywords)) return "Food";
-
-    // ---------------------------------------
-    // 2️⃣ SHOPPING
-    // ---------------------------------------
-    const shoppingKeywords = [
-      "amazon",
-      "flipkart",
-      "myntra",
-      "ajio",
-      "store",
-      "shop",
-      "mart",
-      "bigbazaar",
-      "croma",
-      "lifestyle",
-      "reliance",
-      "pantaloons",
-      "dmart"
-    ];
-
-    if (_match(text, shoppingKeywords)) return "Shopping";
-
-    // ---------------------------------------
-    // 3️⃣ FUEL / PETROL
-    // ---------------------------------------
-    const fuelKeywords = [
-      "hpcl",
-      "bpcl",
-      "ioc",
-      "petrol",
-      "fuel",
-      "gas",
-      "pump",
-    ];
-
-    if (_match(text, fuelKeywords)) return "Fuel";
-
-    // ---------------------------------------
-    // 4️⃣ TRAVEL / TRANSPORT
-    // ---------------------------------------
-    const travelKeywords = [
-      "ola",
-      "uber",
-      "rapido",
-      "irctc",
-      "train",
-      "flight",
-      "air",
-      "bus",
-      "metro",
-      "cab"
-    ];
-
-    if (_match(text, travelKeywords)) return "Travel";
-
-    // ---------------------------------------
-    // 5️⃣ BILLS & UTILITIES
-    // ---------------------------------------
-    const billsKeywords = [
-      "electricity",
-      "bescom",
-      "tneb",
-      "bsnl",
-      "jio",
-      "airtel",
-      "wifi",
-      "broadband",
-      "gas bill",
-      "water bill",
-      "postpaid",
-      "prepaid",
-      "dth",
-      "tatasky"
-    ];
-
-    if (_match(text, billsKeywords)) return "Bills";
-
-    // ---------------------------------------
-    // 6️⃣ SUBSCRIPTIONS
-    // ---------------------------------------
-    const subscriptionKeywords = [
-      "netflix",
-      "spotify",
-      "youtube",
-      "prime",
-      "hotstar",
-      "zee5",
-      "sonyliv",
-      "membership",
-      "subscription"
-    ];
-
-    if (_match(text, subscriptionKeywords)) return "Subscriptions";
-
-    // ---------------------------------------
-    // DEFAULT
-    // ---------------------------------------
-    return "General";
-  }
-
-  // Utility matcher
-  static bool _match(String text, List<String> patterns) {
-    for (final p in patterns) {
-      if (text.contains(p)) return true;
+    // merchant map first
+    for (final key in _merchantMap.keys) {
+      if (mLower.contains(key)) return _merchantMap[key]!;
     }
-    return false;
+
+    // keywords on merchant and body
+    for (final category in _keywords.keys) {
+      final words = _keywords[category]!;
+      for (final kw in words) {
+        final regex = RegExp(kw, caseSensitive: false);
+        if (regex.hasMatch(mLower) || regex.hasMatch(bLower)) {
+          return category;
+        }
+      }
+    }
+
+    // fallback: UPI / txn messages often indicate payment (treat as shopping)
+    if (bLower.contains('upi') || bLower.contains('txn id') || bLower.contains('debited from your a/c')) {
+      return 'shopping';
+    }
+
+    return 'uncategorized';
   }
 }
