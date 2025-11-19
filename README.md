@@ -80,23 +80,23 @@ lib/
 
 
 ### 🏠 Home Screen
-<img src="./screenshots/home.png" width="350"/>
+<img src="./screenshots/Home.png" width="350"/>
 
 ### 💳 Transactions
 <img src="./screenshots/transactions.png" width="350"/>
 
 ### 📊 Insights & Analysis
-<img src="./screenshots/Insights_1.png" width="350"/>
+<img src="./screenshots/Inights_1.png" width="350"/>
 <img src="./screenshots/Insights_2.png" width="350"/>
 
 ### 🎯 Weekly & Monthly Trends  
-<img src="./screenshots/chart.png" width="350"/>
+<img src="./screenshots/charts.png" width="350"/>
 
 ### 🧾 Budgets
 <img src="./screenshots/budget.png" width="350"/>
 
-### 🔍 SMS Debug
-<img src="./screenshots/sms_debug.png" width="350"/>
+### 🔍 Profile
+<img src="./screenshots/Profile.png" width="350"/>
 
 ***
 
@@ -119,8 +119,10 @@ flutter build apk --release
 
 ## 👤 Developer
 
-G Kavita Sri  
-B.Tech IT • Finance • AI Enthusiast
+B.Tech IT Student • Interested in Data Analytics & AI-driven Applications
+
+Built this project as a learning initiative in:
+AI-based insights, data parsing, and mobile app development.
 
 ***
 
