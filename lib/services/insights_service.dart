@@ -1,13 +1,9 @@
 import '../models/transaction_model.dart';
-import '../services/category_totals_service.dart';
 import 'insights_result.dart';
+import 'category_totals_service.dart';
 
 class InsightsService {
-  static InsightsResult generateInsights({
-    required List<TransactionModel> txns,
-    Map<String, dynamic>? budgets, // 🔥 NEW: user budgets
-    double monthlyBudget = 0,       // 🔥 NEW: total monthly budget
-  }) {
+  static InsightsResult generateInsights({required List<TransactionModel> txns}) {
     if (txns.isEmpty) {
       return InsightsResult(
         totalSpent: 0,
@@ -16,6 +12,7 @@ class InsightsService {
         projectedMonthlySpend: 0,
         categoryTotals: {},
         weeklyTotals: [0, 0, 0, 0, 0, 0, 0],
+        monthlyTotals: List.filled(30, 0),
         messages: ["No transactions found. Scan SMS to get insights."],
       );
     }
@@ -23,72 +20,92 @@ class InsightsService {
     double totalSpent = 0;
     double totalCredited = 0;
 
-    // Sum totals
     for (var t in txns) {
-      if (t.type == "debit") totalSpent += t.amount;
-      if (t.type == "credit") totalCredited += t.amount;
+      if (t.type == "debit") {
+        totalSpent += t.amount;
+      } else {
+        totalCredited += t.amount;
+      }
     }
 
-    // Category totals
+    // CATEGORY TOTALS
     final catTotals = CategoryTotalsService.calculate(txns);
 
-    // Weekly totals
-    List<double> weekly = [0, 0, 0, 0, 0, 0, 0];
+    // WEEKLY TOTALS (LAST 7 DAYS)
+    List<double> weekly = List.filled(7, 0);
     for (var t in txns) {
       int diff = DateTime.now().difference(t.timestamp).inDays;
-      if (diff < 7) weekly[6 - diff] += t.amount;
+      if (diff < 7) {
+        weekly[6 - diff] += t.amount;
+      }
     }
 
-    // AI calculations
-    double avgDaily = totalSpent / DateTime.now().day;
-    double projectedMonth = avgDaily * 30;
-    double projectedNextWeek = avgDaily * 7;
+    // MONTHLY TOTALS (LAST 30 DAYS)
+    List<double> monthly = List.filled(30, 0);
+    for (var t in txns) {
+      int diff = DateTime.now().difference(t.timestamp).inDays;
+      if (diff < 30) {
+        monthly[29 - diff] += t.amount;
+      }
+    }
 
+    // DAILY AVG + PROJECTION
+    double avgDaily = totalSpent / 30;
+    double projected = avgDaily * 30;
+
+    // 🔥 AI MESSAGES
     List<String> msgs = [];
 
-    // Highest spending category
+    // 1️⃣ TOP CATEGORY
     if (catTotals.isNotEmpty) {
-      final top = catTotals.entries.reduce((a, b) => a.value > b.value ? a : b);
-      msgs.add("Your highest spending category is *${top.key}* → ₹${top.value}");
+      var top = catTotals.entries.reduce((a, b) => a.value > b.value ? a : b);
+      msgs.add("📌 Highest spending: *${top.key}* → ₹${top.value.toStringAsFixed(2)}");
     }
 
-    msgs.add("Predicted next week spend: ₹${projectedNextWeek.toStringAsFixed(2)}");
-    msgs.add("Projected monthly spend: ₹${projectedMonth.toStringAsFixed(2)}");
-
-    // 🔥 BUDGET AI LOGIC
-    if (monthlyBudget > 0) {
-      if (projectedMonth > monthlyBudget) {
-        msgs.add("⚠️ You may exceed your monthly budget by ₹${(projectedMonth - monthlyBudget).toStringAsFixed(2)}.");
-      } else {
-        msgs.add("👍 You are on track! Estimated savings: ₹${(monthlyBudget - projectedMonth).toStringAsFixed(2)}.");
+    // 2️⃣ TODAY VS YESTERDAY SPIKE
+    if (weekly.length >= 7) {
+      double yesterday = weekly[5];
+      double today = weekly[6];
+      if (yesterday > 0 && today > yesterday * 1.5) {
+        msgs.add("⚠ You spent *${((today / yesterday) * 100).toStringAsFixed(0)}% more* today.");
       }
     }
 
-    // 🔥 Category budget warnings
-    if (budgets != null && budgets.isNotEmpty) {
-      final statuses = computeBudgetStatus(catTotals, budgets);
-
-      for (var s in statuses) {
-        if (s["status"] == "over") {
-          msgs.add("❌ ${s["category"].toUpperCase()} budget exceeded!");
-        } else if (s["status"] == "warning") {
-          msgs.add("⚠️ ${s["category"].toUpperCase()} budget at 80%.");
-        }
-      }
+    // 3️⃣ WEEKLY TREND
+    double weekTotal = weekly.reduce((a, b) => a + b);
+    if (weekTotal > avgDaily * 7 * 1.2) {
+      msgs.add("🔥 Your weekly spending is ~20% higher than normal.");
     }
 
+    // 4️⃣ PROJECTED SPENDING
+    msgs.add("📅 Projected monthly spend → ₹${projected.toStringAsFixed(2)}");
+
+    // 5️⃣ INCOME WARNING
+    if (totalCredited > 0 && projected > totalCredited) {
+      msgs.add("⚠ Your spending projection is higher than your credited income.");
+    }
+
+    // 6️⃣ CATEGORY GROWTH WARNING
+    catTotals.forEach((cat, amt) {
+      if (amt > avgDaily * 6) {
+        msgs.add("📈 *$cat* spending is rising faster than usual → ₹$amt this week.");
+      }
+    });
+
+    // RETURN FINAL RESULT BUNDLE
     return InsightsResult(
       totalSpent: totalSpent,
       totalCredited: totalCredited,
       avgDailySpend: avgDaily,
-      projectedMonthlySpend: projectedMonth,
+      projectedMonthlySpend: projected,
       categoryTotals: catTotals,
       weeklyTotals: weekly,
+      monthlyTotals: monthly,
       messages: msgs,
     );
   }
 
-  // Category-based budget calculations
+  // 🔍 Budget logic
   static List<Map<String, dynamic>> computeBudgetStatus(
       Map<String, double> categoryTotals,
       Map<String, dynamic> budgets) {
@@ -96,14 +113,18 @@ class InsightsService {
 
     categoryTotals.forEach((category, spent) {
       final limit = (budgets[category] ?? 0).toDouble();
+
       double percent = 0;
       String status = "ok";
 
       if (limit > 0) {
         percent = (spent / limit) * 100;
 
-        if (percent >= 100) status = "over";
-        else if (percent >= 80) status = "warning";
+        if (percent >= 100) {
+          status = "over";
+        } else if (percent >= 80) {
+          status = "warning";
+        }
       }
 
       result.add({

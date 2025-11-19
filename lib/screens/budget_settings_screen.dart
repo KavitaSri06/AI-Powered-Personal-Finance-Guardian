@@ -2,51 +2,74 @@ import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 
 class BudgetSettingsScreen extends StatefulWidget {
-  const BudgetSettingsScreen({super.key});
+  const BudgetSettingsScreen({Key? key}) : super(key: key);
 
   @override
   State<BudgetSettingsScreen> createState() => _BudgetSettingsScreenState();
 }
 
 class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
-  final TextEditingController monthlyController = TextEditingController();
-  final TextEditingController foodController = TextEditingController();
-  final TextEditingController shoppingController = TextEditingController();
-  final TextEditingController billsController = TextEditingController();
-  final TextEditingController fuelController = TextEditingController();
-  final TextEditingController travelController = TextEditingController();
-  final TextEditingController othersController = TextEditingController();
-
   final firestore = FirestoreService();
+  final TextEditingController monthlyController = TextEditingController();
 
-  void saveBudget() async {
-    final data = {
-      "monthlyLimit": double.tryParse(monthlyController.text) ?? 0,
-      "food": double.tryParse(foodController.text) ?? 0,
-      "shopping": double.tryParse(shoppingController.text) ?? 0,
-      "bills": double.tryParse(billsController.text) ?? 0,
-      "fuel": double.tryParse(fuelController.text) ?? 0,
-      "travel": double.tryParse(travelController.text) ?? 0,
-      "others": double.tryParse(othersController.text) ?? 0,
-    };
+  final Map<String, TextEditingController> categoryControllers = {
+    'food': TextEditingController(),
+    'shopping': TextEditingController(),
+    'bills': TextEditingController(),
+    'fuel': TextEditingController(),
+    'travel': TextEditingController(),
+    'subscriptions': TextEditingController(),
+    'others': TextEditingController(),
+  };
 
-    await firestore.saveBudgetSettings(data);
+  bool saving = false;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Budget saved successfully!")),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadBudgets();
   }
 
-  Widget budgetField(String label, TextEditingController controller) {
+  Future<void> _loadBudgets() async {
+    try {
+      final raw = await firestore.getBudgets();
+      if (raw is Map) {
+        final map = Map<String, dynamic>.from(raw);
+        monthlyController.text = (map['monthly'] ?? '').toString();
+        categoryControllers.forEach((k, c) {
+          c.text = (map[k] ?? '').toString();
+        });
+      }
+    } catch (e) {
+      debugPrint('load budgets error: $e');
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => saving = true);
+    final Map<String, dynamic> budgets = {};
+    budgets['monthly'] = double.tryParse(monthlyController.text) ?? 0;
+    categoryControllers.forEach((k, c) {
+      budgets[k] = double.tryParse(c.text) ?? 0;
+    });
+
+    try {
+      await firestore.saveBudgets(budgets);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Budget saved')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    } finally {
+      setState(() => saving = false);
+    }
+  }
+
+  Widget _field(String label, TextEditingController controller) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
         controller: controller,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
       ),
     );
   }
@@ -55,42 +78,28 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Budget Settings"),
+        title: const Text('Budget Settings'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(18),
-        child: ListView(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            const Text("Monthly Budget",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
-            budgetField("Enter monthly limit", monthlyController),
-
-            const SizedBox(height: 20),
-            const Text("Category Budgets",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
-
-            budgetField("Food", foodController),
-            budgetField("Shopping", shoppingController),
-            budgetField("Bills", billsController),
-            budgetField("Fuel", fuelController),
-            budgetField("Travel", travelController),
-            budgetField("Others", othersController),
-
-            const SizedBox(height: 20),
+            _field('Monthly Budget', monthlyController),
+            const SizedBox(height: 8),
+            const Align(alignment: Alignment.centerLeft, child: Text('Category Budgets', style: TextStyle(fontWeight: FontWeight.bold))),
+            const SizedBox(height: 8),
+            _field('Food', categoryControllers['food']!),
+            _field('Shopping', categoryControllers['shopping']!),
+            _field('Bills', categoryControllers['bills']!),
+            _field('Fuel', categoryControllers['fuel']!),
+            _field('Travel', categoryControllers['travel']!),
+            _field('Subscriptions', categoryControllers['subscriptions']!),
+            _field('Others', categoryControllers['others']!),
+            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: saveBudget,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: const Text(
-                "Save Budget",
-                style: TextStyle(fontSize: 17),
-              ),
-            )
+              onPressed: saving ? null : _save,
+              child: saving ? const CircularProgressIndicator(color: Colors.white) : const Text('Save Budget'),
+            ),
           ],
         ),
       ),

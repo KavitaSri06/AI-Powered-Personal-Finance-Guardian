@@ -1,120 +1,87 @@
 import 'package:flutter/material.dart';
 import '../models/transaction_model.dart';
-import '../utils/category_styles.dart';
 
 class TransactionDetailsScreen extends StatelessWidget {
+  const TransactionDetailsScreen({Key? key}) : super(key: key);
+
+  String _formatDate(DateTime dt) {
+    return '${dt.day}/${dt.month}/${dt.year}  ${dt.hour}:${dt.minute.toString().padLeft(2,'0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final TransactionModel txn =
-    ModalRoute.of(context)!.settings.arguments as TransactionModel;
+    final args = ModalRoute.of(context)!.settings.arguments;
+    TransactionModel? txn;
 
-    final style = CategoryStyles.getStyle(txn.category);
-    final Color color = style["color"];
-    final IconData icon = style["icon"];
+    if (args is TransactionModel) {
+      txn = args;
+    } else if (args is Map) {
+      try {
+        txn = TransactionModel.fromMap(Map<String, dynamic>.from(args));
+      } catch (_) {}
+    }
+
+    if (txn == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Transaction Details")),
+        body: const Center(child: Text("No details available")),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Transaction Details"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(18),
+      appBar: AppBar(title: const Text("Transaction Details")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ---------------------------
-            //  Category & Icon
-            // ---------------------------
-            Center(
-              child: CircleAvatar(
-                radius: 45,
-                backgroundColor: color.withOpacity(0.2),
-                child: Icon(icon, size: 40, color: color),
-              ),
-            ),
-
-            SizedBox(height: 20),
-
-            Center(
-              child: Text(
-                "₹${txn.amount.toStringAsFixed(0)}",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: txn.type == "debit" ? Colors.red : Colors.green,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 6),
-            Center(
-              child: Text(
-                txn.type.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
-              ),
-            ),
-
-            SizedBox(height: 25),
-
-            // ---------------------------
-            // Details card
-            // ---------------------------
+            CircleAvatar(radius: 48, child: Icon(Icons.shopping_bag, size: 36)),
+            const SizedBox(height: 16),
+            Text("₹${txn.amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 28, color: Colors.red)),
+            const SizedBox(height: 6),
+            Text(txn.type.toUpperCase(), style: const TextStyle(letterSpacing: 1.2)),
+            const SizedBox(height: 18),
             Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(12),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _detailRow("Merchant", txn.merchant),
-                    _detailRow("Category", txn.category),
-                    _detailRow("Date", txn.timestamp.toString()),
-                    _detailRow("Type", txn.type),
+                    _twoCol("Merchant", txn.merchant ?? "Unknown"),
+                    _twoCol("Category", txn.category ?? "Uncategorized"),
+                    _twoCol("Date", _formatDate(txn.timestamp)),
+                    _twoCol("Type", txn.type),
                   ],
                 ),
               ),
             ),
-
-            SizedBox(height: 20),
-
-            Text(
-              "Message",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: 18),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text("Message", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 6),
-
+            const SizedBox(height: 8),
             Container(
-              padding: EdgeInsets.all(14),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                txn.body,
-                style: TextStyle(fontSize: 14, color: Colors.black87),
-              ),
-            )
+              child: Text(txn.body ?? ""),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _detailRow(String title, String value) {
+  Widget _twoCol(String left, String right) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-          Text(value,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          Expanded(child: Text(left, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(child: Text(right, textAlign: TextAlign.right)),
         ],
       ),
     );

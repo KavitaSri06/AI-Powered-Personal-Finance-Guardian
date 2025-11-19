@@ -1,37 +1,59 @@
-// lib/utils/category_styles.dart
 import 'package:flutter/material.dart';
 
+class CategoryStyle {
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  CategoryStyle({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+}
+
 class CategoryStyles {
-  // Returns a small style map: { "color": Color, "icon": IconData }
-  // Call: final style = CategoryStyles.getStyle("food");
-  static Map<String, dynamic> getStyle(String category) {
-    final c = (category ?? "").toLowerCase();
+  static final Map<String, CategoryStyle> _styles = {
+    "food": CategoryStyle(
+      icon: Icons.fastfood,
+      color: Colors.orange,
+      label: "Food",
+    ),
+    "shopping": CategoryStyle(
+      icon: Icons.shopping_bag,
+      color: Colors.purple,
+      label: "Shopping",
+    ),
+    "fuel": CategoryStyle(
+      icon: Icons.local_gas_station,
+      color: Colors.blueGrey,
+      label: "Fuel",
+    ),
+    "travel": CategoryStyle(
+      icon: Icons.flight,
+      color: Colors.teal,
+      label: "Travel",
+    ),
+    "bills": CategoryStyle(
+      icon: Icons.receipt_long,
+      color: Colors.indigo,
+      label: "Bills",
+    ),
+    "subscriptions": CategoryStyle(
+      icon: Icons.subscriptions,
+      color: Colors.green,
+      label: "Subscriptions",
+    ),
+    "others": CategoryStyle(
+      icon: Icons.category,
+      color: Colors.grey,
+      label: "Others",
+    ),
+  };
 
-    if (c.contains("food") || c.contains("restaurant") || c.contains("zomato") || c.contains("swiggy")) {
-      return {"color": Colors.deepOrange, "icon": Icons.restaurant};
-    }
+  static CategoryStyle getStyle(String? category) {
+    final key = category?.toLowerCase().trim() ?? "others";
 
-    if (c.contains("shopping") || c.contains("amazon") || c.contains("flipkart") || c.contains("store") || c.contains("mall")) {
-      return {"color": Colors.purple, "icon": Icons.shopping_bag};
-    }
-
-    if (c.contains("fuel") || c.contains("petrol") || c.contains("diesel") || c.contains("hpcl") || c.contains("indian oil")) {
-      return {"color": Colors.amber.shade700, "icon": Icons.local_gas_station};
-    }
-
-    if (c.contains("travel") || c.contains("uber") || c.contains("ola") || c.contains("flight") || c.contains("train") || c.contains("bus")) {
-      return {"color": Colors.indigo, "icon": Icons.directions_car};
-    }
-
-    if (c.contains("bill") || c.contains("electricity") || c.contains("water") || c.contains("broadband") || c.contains("phone")) {
-      return {"color": Colors.teal, "icon": Icons.receipt_long};
-    }
-
-    if (c.contains("subscr") || c.contains("netflix") || c.contains("spotify") || c.contains("prime") || c.contains("membership")) {
-      return {"color": Colors.blueGrey, "icon": Icons.subscriptions};
-    }
-
-    // default / unknown
-    return {"color": Colors.blue, "icon": Icons.account_balance_wallet};
+    return _styles[key] ?? _styles["others"]!;
   }
 }

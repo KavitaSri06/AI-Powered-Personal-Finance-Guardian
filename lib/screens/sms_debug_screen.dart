@@ -4,47 +4,47 @@ import '../services/firestore_service.dart';
 import '../models/transaction_model.dart';
 
 class SmsDebugScreen extends StatefulWidget {
+  const SmsDebugScreen({super.key});
+
   @override
-  _SmsDebugScreenState createState() => _SmsDebugScreenState();
+  State<SmsDebugScreen> createState() => _SmsDebugScreenState();
 }
 
 class _SmsDebugScreenState extends State<SmsDebugScreen> {
+  bool loading = false;
   List<TransactionModel> parsed = [];
-  bool isLoading = false;
 
   Future<void> scanSms() async {
-    setState(() => isLoading = true);
+    setState(() => loading = true);
 
-    SmsService smsService = SmsService();
-    FirestoreService firestore = FirestoreService();
+    final sms = SmsService();
+    final firestore = FirestoreService();
 
-    // Extract transactions
-    final data = await smsService.extractTransactions();
+    final data = await sms.extractTransactions(); // returns List<TransactionModel>
 
-    // save each txn to Firestore
     for (final txn in data) {
-      await firestore.saveTransaction(txn);
+      await firestore.saveTransaction(txn);   // FIXED
     }
 
     setState(() {
       parsed = data;
-      isLoading = false;
+      loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("SMS Debug Scanner")),
+      appBar: AppBar(title: const Text("SMS Debug Scanner")),
       body: Column(
         children: [
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: scanSms,
-            child: Text("SCAN SMS"),
+            onPressed: loading ? null : scanSms,
+            child: const Text("SCAN SMS"),
           ),
-          if (isLoading)
-            Padding(
+          if (loading)
+            const Padding(
               padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
@@ -52,19 +52,15 @@ class _SmsDebugScreenState extends State<SmsDebugScreen> {
             child: ListView.builder(
               itemCount: parsed.length,
               itemBuilder: (context, index) {
-                final txn = parsed[index];
-
+                final t = parsed[index];
                 return ListTile(
-                  title: Text("₹${txn.amount}  |  ${txn.type}"),
-                  subtitle: Text("${txn.merchant}"),
-                  trailing: Text(
-                    "${txn.timestamp.day}/${txn.timestamp.month}",
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  title: Text("₹${t.amount} • ${t.type}"),
+                  subtitle: Text(t.merchant),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                 );
               },
             ),
-          )
+          ),
         ],
       ),
     );

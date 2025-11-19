@@ -1,82 +1,95 @@
 import 'package:flutter/material.dart';
-import '../models/transaction_model.dart';
 import '../services/firestore_service.dart';
+import '../models/transaction_model.dart';
 import '../widgets/tiles/transaction_tile.dart';
 
 class TransactionsScreen extends StatefulWidget {
   @override
-  _TransactionsScreenState createState() => _TransactionsScreenState();
+  State<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
   final firestore = FirestoreService();
 
-  List<TransactionModel> all = [];
-  List<TransactionModel> filtered = [];
+  List<TransactionModel> allTxns = [];
+  List<TransactionModel> filteredTxns = [];
 
-  String search = "";
-  String typeFilter = "all";
-  String categoryFilter = "all";
-  String dateFilter = "all";
+  String activeFilter = "all";
 
   @override
   void initState() {
     super.initState();
-    load();
+    loadTxns();
   }
 
-  Future<void> load() async {
-    all = await firestore.getAllTransactions();
-    applyFilters();
+  Future<void> loadTxns() async {
+    allTxns = await firestore.getAllTransactions();
+    applyFilter("all");
   }
 
-  void applyFilters() {
-    List<TransactionModel> data = all;
+  void applyFilter(String filter) {
+    activeFilter = filter;
 
-    // Search
-    if (search.isNotEmpty) {
-      data = data.where((t) =>
-      t.merchant.toLowerCase().contains(search.toLowerCase()) ||
-          t.body.toLowerCase().contains(search.toLowerCase())).toList();
-    }
-
-    // Type
-    if (typeFilter != "all") {
-      data = data.where((t) => t.type == typeFilter).toList();
-    }
-
-    // Category
-    if (categoryFilter != "all") {
-      data = data.where((t) => t.category == categoryFilter).toList();
-    }
-
-    // Date Filter
     DateTime now = DateTime.now();
-    if (dateFilter == "today") {
-      data = data.where((t) =>
-      t.timestamp.day == now.day &&
-          t.timestamp.month == now.month &&
-          t.timestamp.year == now.year).toList();
-    } else if (dateFilter == "week") {
-      data = data.where((t) => now.difference(t.timestamp).inDays <= 7).toList();
-    } else if (dateFilter == "month") {
-      data = data.where((t) =>
-      t.timestamp.month == now.month &&
-          t.timestamp.year == now.year).toList();
-    }
 
-    setState(() => filtered = data);
+    setState(() {
+      switch (filter) {
+        case "debit":
+          filteredTxns =
+              allTxns.where((t) => t.type == "debit").toList();
+          break;
+
+        case "credit":
+          filteredTxns =
+              allTxns.where((t) => t.type == "credit").toList();
+          break;
+
+        case "today":
+          filteredTxns = allTxns.where((t) =>
+          t.timestamp.day == now.day &&
+              t.timestamp.month == now.month &&
+              t.timestamp.year == now.year).toList();
+          break;
+
+        case "week":
+          DateTime weekStart = now.subtract(Duration(days: now.weekday - 1));
+          filteredTxns = allTxns.where((t) =>
+          t.timestamp.isAfter(weekStart) &&
+              t.timestamp.isBefore(now.add(Duration(days: 1)))).toList();
+          break;
+
+        case "month":
+          filteredTxns = allTxns.where((t) =>
+          t.timestamp.month == now.month &&
+              t.timestamp.year == now.year).toList();
+          break;
+
+        default:
+          filteredTxns = List.from(allTxns);
+      }
+    });
   }
 
-  Widget filterChip(String label, String value, String group, Function(String) onSelected) {
-    bool selected = value == group;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() {
-        onSelected(label.toLowerCase());
-        applyFilters();
-      }),
+  Widget filterButton(String label, String key) {
+    bool isActive = activeFilter == key;
+
+    return GestureDetector(
+      onTap: () => applyFilter(key),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        margin: EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.indigo : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
@@ -84,75 +97,50 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Transactions"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: load,
-          )
-        ],
+        title: Text("All Transactions"),
+        elevation: 0,
       ),
-      body: ListView(
-        padding: EdgeInsets.all(16),
+      body: Column(
         children: [
-          // Search
-          TextField(
-            decoration: InputDecoration(
-              hintText: "Search transactions...",
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          // -------------------------
+          // FILTER BUTTONS ROW
+          // -------------------------
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            height: 55,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                filterButton("All", "all"),
+                filterButton("Debit", "debit"),
+                filterButton("Credit", "credit"),
+                filterButton("Today", "today"),
+                filterButton("Week", "week"),
+                filterButton("Month", "month"),
+              ],
             ),
-            onChanged: (v) {
-              search = v;
-              applyFilters();
-            },
           ),
 
-          SizedBox(height: 12),
+          Divider(height: 1),
 
-          // Filters
-          Wrap(
-            spacing: 8,
-            children: [
-              filterChip("All", dateFilter, "all", (v) => dateFilter = "all"),
-              filterChip("Today", dateFilter, "today", (v) => dateFilter = "today"),
-              filterChip("Week", dateFilter, "week", (v) => dateFilter = "week"),
-              filterChip("Month", dateFilter, "month", (v) => dateFilter = "month"),
-            ],
+          // -------------------------
+          // TRANSACTION LIST
+          // -------------------------
+          Expanded(
+            child: filteredTxns.isEmpty
+                ? Center(
+              child: Text(
+                "No transactions found",
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
+              itemCount: filteredTxns.length,
+              itemBuilder: (context, index) {
+                return TransactionTile(transaction: filteredTxns[index]);
+              },
+            ),
           ),
-
-          SizedBox(height: 12),
-
-          Wrap(
-            spacing: 8,
-            children: [
-              filterChip("All", typeFilter, "all", (v) => typeFilter = "all"),
-              filterChip("Debit", typeFilter, "debit", (v) => typeFilter = "debit"),
-              filterChip("Credit", typeFilter, "credit", (v) => typeFilter = "credit"),
-            ],
-          ),
-
-          SizedBox(height: 12),
-
-          Wrap(
-            spacing: 8,
-            children: [
-              filterChip("All", categoryFilter, "all", (v) => categoryFilter = "all"),
-              filterChip("Shopping", categoryFilter, "shopping", (v) => categoryFilter = "shopping"),
-              filterChip("Food", categoryFilter, "food", (v) => categoryFilter = "food"),
-              filterChip("Bills", categoryFilter, "bills", (v) => categoryFilter = "bills"),
-              filterChip("Fuel", categoryFilter, "fuel", (v) => categoryFilter = "fuel"),
-            ],
-          ),
-
-          SizedBox(height: 20),
-
-          // ----------------------
-          // USE TransactionTile HERE
-          // ----------------------
-          ...filtered.map((t) => TransactionTile(transaction: t)).toList(),
         ],
       ),
     );
