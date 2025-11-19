@@ -78,11 +78,25 @@ lib/
 
 ## 📸 App Screenshots
 
-_Showcase your app with screenshots (suggestion: put images in `assets/screenshots/`)_
 
-| Home | Insights | Budget |
-|------|----------|--------|
-|  |  |  |
+### 🏠 Home Screen
+<img src="./screenshots/home.png" width="350"/>
+
+### 💳 Transactions
+<img src="./screenshots/transactions.png" width="350"/>
+
+### 📊 Insights & Analysis
+<img src="./screenshots/Insights_1.png" width="350"/>
+<img src="./screenshots/Insights_2.png" width="350"/>
+
+### 🎯 Weekly & Monthly Trends  
+<img src="./screenshots/chart.png" width="350"/>
+
+### 🧾 Budgets
+<img src="./screenshots/budget.png" width="350"/>
+
+### 🔍 SMS Debug
+<img src="./screenshots/sms_debug.png" width="350"/>
 
 ***
 
