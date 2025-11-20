@@ -78,26 +78,15 @@ lib/
 
 ## 📸 App Screenshots
 
+###  Home Screen &  Transactions
+<img src="./screenshots/Home.png" width="250"/>   <img src="./screenshots/transactions.png" width="250"/>
 
-### 🏠 Home Screen
-<img src="./screenshots/Home.png" width="350"/>
+###  Insights & Analysis
+<img src="./screenshots/Inights_1.png" width="250"/> <img src="./screenshots/charts.png" width="300"/>  <img src="./screenshots/Insights_2.png" width="250"/>
 
-### 💳 Transactions
-<img src="./screenshots/transactions.png" width="350"/>
-
-### 📊 Insights & Analysis
-<img src="./screenshots/Inights_1.png" width="350"/>
-<img src="./screenshots/Insights_2.png" width="350"/>
-
-### 🎯 Weekly & Monthly Trends  
-<img src="./screenshots/charts.png" width="350"/>
-
-### 🧾 Budgets
-<img src="./screenshots/budget.png" width="350"/>
-
-### 🔍 Profile
-<img src="./screenshots/Profile.png" width="350"/>
-
+###  Profile &  Budgets
+<img src="./screenshots/Profile.png" width="250"/>   <img src="./screenshots/budget.png" width="250"/>
+    
 ***
 
 ## ▶️ Run Locally
